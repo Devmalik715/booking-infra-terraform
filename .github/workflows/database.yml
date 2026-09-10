@@ -26,14 +26,7 @@ jobs:
         run: shellcheck scripts/*.sh
 
       - name: Start Postgres
-        run: |
-          docker compose up -d
-          echo "Waiting for Postgres to initialize and seed data..."
-          until [ "$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc 'SELECT count(*) FROM hotel_bookings;' 2>/dev/null || echo 0)" -ge 100 ]; do
-            echo "Waiting for seeds to insert (currently < 100 rows)..."
-            sleep 2
-          done
-          echo "Postgres is ready and seed data is fully loaded."
+        run: docker compose up -d --wait
 
       - name: Check the seed data landed
         run: |
