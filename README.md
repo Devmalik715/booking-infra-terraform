@@ -492,3 +492,5 @@ redirect from 80, application autoscaling on the ECS service, VPC endpoints for
 ECR / S3 / Secrets Manager so image pulls and secret reads skip the NAT
 gateway (cheaper and one less dependency), CloudWatch alarms on ALB 5xx and RDS
 free storage, and `checkov` or `tfsec` in the PR workflow next to `validate`.
+
+
