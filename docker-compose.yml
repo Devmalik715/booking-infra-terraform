@@ -18,11 +18,11 @@ services:
       - ./db/seed/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro
       - ./db:/work/db:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bookings_app} -d ${POSTGRES_DB:-bookings}"]
-      interval: 5s
+      test: ["CMD-SHELL", "psql -U ${POSTGRES_USER:-bookings_app} -d ${POSTGRES_DB:-bookings} -tAc 'SELECT count(*) FROM hotel_bookings;' | grep -q '[1-9]'"]
+      interval: 3s
       timeout: 5s
-      retries: 12
-      start_period: 20s
+      retries: 20
+      start_period: 10s
 
 volumes:
   pgdata:
