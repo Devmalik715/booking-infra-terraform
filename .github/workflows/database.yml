@@ -28,17 +28,18 @@ jobs:
       - name: Start Postgres
         run: |
           docker compose up -d
-          echo "Waiting for Postgres to complete init scripts, restart, and load seed data..."
-          for i in {1..30}; do
-            count=$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc "SELECT count(*) FROM hotel_bookings;" 2>/dev/null || echo "0")
-            count=$(echo "$count" | tr -d '[:space:]')
-            if [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -ge 100 ]; then
-              echo "Database is fully initialized with $count seed rows."
-              break
-            fi
-            echo "Waiting for seed rows... (attempt $i, current: $count)"
+          echo "Waiting for Postgres to complete init scripts..."
+          until [ "$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc 'SELECT count(*) FROM hotel_bookings;' 2>/dev/null || echo 0)" -ge 100 ]; do
             sleep 2
           done
+          echo "Seed finished. Waiting for Postgres restart cycle to fully settle..."
+          # Allow the temporary process to shut down and the persistent server to take over
+          sleep 6
+          until docker compose exec -T postgres pg_isready -U bookings_app -d bookings; do
+            echo "Waiting for persistent server to accept connections..."
+            sleep 1
+          done
+          echo "Postgres is permanently up and ready for queries."
 
       - name: Check the seed data landed
         run: |
