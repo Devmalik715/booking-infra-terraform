@@ -1,5 +1,5 @@
 variable "project" {
-  description = "Project name, used as a prefix on every resource name."
+  description = "Prefix for resource names."
   type        = string
 }
 
@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "aws_region" {
-  description = "Region the service runs in. Used for the awslogs driver configuration."
+  description = "Region, used by the awslogs driver."
   type        = string
 }
 
@@ -24,12 +24,12 @@ variable "public_subnet_ids" {
 }
 
 variable "private_subnet_ids" {
-  description = "Private subnets for the Fargate tasks. Tasks get no public IP."
+  description = "Private subnets for the Fargate tasks."
   type        = list(string)
 }
 
 variable "container_image" {
-  description = "Image the service runs. A placeholder web image is enough for this exercise."
+  description = "Container image the service runs."
   type        = string
   default     = "public.ecr.aws/nginx/nginx:1.27-alpine"
 }
@@ -41,19 +41,19 @@ variable "container_port" {
 }
 
 variable "task_cpu" {
-  description = "Fargate task CPU units (256 = 0.25 vCPU)."
+  description = "Fargate task CPU units."
   type        = number
   default     = 256
 }
 
 variable "task_memory" {
-  description = "Fargate task memory in MiB. Must be a valid pairing with task_cpu."
+  description = "Fargate task memory in MiB."
   type        = number
   default     = 512
 }
 
 variable "desired_count" {
-  description = "Number of tasks to keep running."
+  description = "Number of tasks to run."
   type        = number
   default     = 1
 }
@@ -71,13 +71,13 @@ variable "log_retention_days" {
 }
 
 variable "enable_deletion_protection" {
-  description = "Protect the ALB from accidental deletion. Should be true in prod."
+  description = "Protect the ALB from deletion."
   type        = bool
   default     = false
 }
 
 variable "enable_container_insights" {
-  description = "Turn on ECS Container Insights (extra CloudWatch cost)."
+  description = "Enable ECS Container Insights."
   type        = bool
   default     = false
 }
@@ -95,13 +95,13 @@ variable "container_environment" {
 }
 
 variable "container_secrets" {
-  description = "Secrets injected into the container as env vars. Map of ENV_VAR_NAME to a Secrets Manager ARN."
+  description = "Env var name to Secrets Manager ARN."
   type        = map(string)
   default     = {}
 }
 
 variable "tags" {
-  description = "Tags applied to every resource in this module."
+  description = "Tags applied to every resource."
   type        = map(string)
   default     = {}
 }

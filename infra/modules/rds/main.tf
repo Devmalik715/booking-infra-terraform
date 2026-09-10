@@ -1,7 +1,6 @@
 locals {
   name = "${var.project}-${var.environment}"
 
-  # 16.3 -> 16. The parameter group family follows the major version only.
   major_version   = split(".", var.engine_version)[0]
   parameter_group = "postgres${local.major_version}"
 }
@@ -13,9 +12,6 @@ resource "aws_db_subnet_group" "this" {
   tags = merge(var.tags, { Name = "${local.name}-db" })
 }
 
-# The whole point of this security group: the database accepts connections from
-# the Fargate task security group and from nothing else. No CIDR ingress rules,
-# no public access, no bastion path.
 resource "aws_security_group" "this" {
   name        = "${local.name}-rds"
   description = "Postgres access for the application tasks only"
@@ -55,8 +51,6 @@ resource "aws_db_parameter_group" "this" {
     value = "1"
   }
 
-  # pg_stat_statements is what makes "which query is hurting us" answerable
-  # after the fact. Static parameter, so it needs a reboot to take effect.
   parameter {
     name         = "shared_preload_libraries"
     value        = "pg_stat_statements"
@@ -86,8 +80,6 @@ resource "aws_db_instance" "this" {
   username = var.master_username
   port     = var.port
 
-  # RDS generates the master password and rotates it into Secrets Manager, so
-  # the credential never passes through Terraform state or a tfvars file.
   manage_master_user_password = true
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
@@ -117,8 +109,7 @@ resource "aws_db_instance" "this" {
   tags = merge(var.tags, { Name = "${local.name}-postgres" })
 
   lifecycle {
-    # The final snapshot name embeds a timestamp, and Performance Insights
-    # rewrites its own KMS key id - neither should ever force a replacement.
+    # the snapshot name embeds a timestamp; it must not force a replacement
     ignore_changes = [final_snapshot_identifier, performance_insights_kms_key_id]
   }
 }

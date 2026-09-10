@@ -1,30 +1,11 @@
--- seed.sql
--- Generates a realistic booking data set.
---
--- The assignment asks for at least 100 bookings; this loads 50,000 on purpose.
--- With a hundred rows Postgres will seq-scan whatever you do, an index makes no
--- measurable difference, and the Part 5 answer becomes unverifiable. 50k rows
--- still seed in about three seconds and give the planner a real choice.
---
--- Every value is derived from a hash of the row number rather than random():
---
---   * it is reproducible - the same rows come out of every rebuild, so the
---     numbers quoted in README.md and docs/query-optimization.md can be
---     re-checked instead of taken on trust;
---   * it is correlated with the row, which random() inside a non-correlated
---     LATERAL is not. Postgres is free to evaluate an uncorrelated subquery
---     once and reuse the result for every row, and it does - the first version
---     of this file produced 50,000 bookings that all shared one city.
---
--- hash(n, salt) below yields an integer in [0, 2^28) from md5.
+-- 50,000 bookings so the Part 5 index has enough rows to matter. Values are
+-- derived from md5(row number) rather than random(), which keeps every rebuild
+-- identical and avoids random() being hoisted out of the LATERAL.
 
 INSERT INTO hotel_bookings (
     id, org_id, hotel_id, city, checkin_date, checkout_date, amount, status, created_at
 )
 SELECT
-    -- Derived from the row number as well, so the ids are stable too. Real
-    -- bookings get their id from the application; this is seed data whose whole
-    -- job is to be identical on every rebuild.
     md5(g::text || ':booking')::uuid,
     cfg.org_ids[1 + h.org % array_length(cfg.org_ids, 1)],
     'HTL-' || upper(substr(pick.city, 1, 3)) || '-' || lpad((1 + h.hotel % 40)::text, 3, '0'),
@@ -37,7 +18,6 @@ SELECT
 FROM (
     SELECT
         50000 AS booking_count,
-        -- Six tenant organisations sharing the platform.
         ARRAY[
             '3f6c1a52-9d4e-4c8b-8f01-6a0b2d7e5c11',
             '7b2e4d19-0c53-4a76-9e88-1d4f3b6a2c47',
@@ -46,9 +26,6 @@ FROM (
             'e8a30b6d-7c41-4f92-a1d5-3e6b8c204f95',
             'f2b58c14-3a97-4e60-9d28-7c05a1f3b8de'
         ]::uuid[] AS org_ids,
-        -- Weighted by repetition. Delhi is the busiest market, which is exactly
-        -- why the Part 5 query filters on it: 4/16 of the rows, so the index
-        -- has to be selective enough to still beat a sequential scan.
         ARRAY[
             'delhi', 'delhi', 'delhi', 'delhi',
             'mumbai', 'mumbai', 'mumbai',
@@ -79,8 +56,6 @@ CROSS JOIN LATERAL (
 CROSS JOIN LATERAL (
     SELECT
         cfg.city_pool[1 + h.city % array_length(cfg.city_pool, 1)] AS city,
-        -- Bookings spread over the last 120 days, so the 30-day reporting
-        -- window in the Part 5 query keeps roughly a quarter of them.
         now()
             - make_interval(days => h.age % 120)
             - make_interval(hours => h.lead % 24) AS created_at
@@ -92,10 +67,6 @@ CROSS JOIN LATERAL (
         (pick_base.created_at + make_interval(days => 1 + h.lead % 60))::date AS checkin_date
 ) pick;
 
--- Events for a subset of bookings. Every sampled booking gets a creation event;
--- the ones that were paid for or cancelled get their follow-up event too, so
--- the event mix lines up with the booking statuses instead of being noise.
--- The sample is picked by hashing the booking id, so it is stable as well.
 CREATE TEMP TABLE seed_sample AS
 SELECT
     id,
@@ -138,9 +109,6 @@ WHERE s.status IN ('confirmed', 'completed', 'cancelled', 'no_show');
 
 DROP TABLE seed_sample;
 
--- Without fresh statistics the planner is working from guesses, and without a
--- vacuum the visibility map is empty, which quietly rules out the index-only
--- scan that the Part 5 index was built for.
 VACUUM ANALYZE hotel_bookings;
 VACUUM ANALYZE booking_events;
 

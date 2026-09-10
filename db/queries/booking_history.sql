@@ -1,6 +1,3 @@
--- Second access pattern the schema is indexed for: the event history of one
--- booking, newest first. Served by idx_booking_events_booking_id_created_at.
-
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT event_type, payload, created_at
 FROM booking_events

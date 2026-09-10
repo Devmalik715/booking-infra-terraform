@@ -14,7 +14,7 @@ output "port" {
 }
 
 output "db_name" {
-  description = "Name of the initial database."
+  description = "Initial database name."
   value       = aws_db_instance.this.db_name
 }
 

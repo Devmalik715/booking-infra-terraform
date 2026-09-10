@@ -1,9 +1,3 @@
--- The reporting query from Part 5 of the assignment: per-organisation booking
--- totals for one city over the trailing 30 days.
---
--- Run it with timing and a plan:
---   docker compose exec postgres psql -U bookings_app -d bookings -f /work/db/queries/booking_rollup.sql
-
 \timing on
 
 EXPLAIN (ANALYZE, BUFFERS)

@@ -2,11 +2,6 @@ locals {
   name = "${var.project}-${var.environment}"
 }
 
-########################################
-# Security groups
-########################################
-
-# Public edge. The ALB is the only thing exposed to the internet.
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
   description = "Allows inbound HTTP to the application load balancer"
@@ -33,7 +28,6 @@ resource "aws_vpc_security_group_egress_rule" "alb_all" {
   ip_protocol       = "-1"
 }
 
-# Fargate tasks. Reachable from the ALB security group only, never from the internet.
 resource "aws_security_group" "tasks" {
   name        = "${local.name}-tasks"
   description = "Allows inbound traffic from the ALB to the Fargate tasks"
@@ -57,10 +51,6 @@ resource "aws_vpc_security_group_egress_rule" "tasks_all" {
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
-
-########################################
-# Load balancer
-########################################
 
 resource "aws_lb" "this" {
   name               = substr("${local.name}-alb", 0, 32)
@@ -109,10 +99,6 @@ resource "aws_lb_listener" "http" {
   tags = var.tags
 }
 
-########################################
-# IAM
-########################################
-
 data "aws_iam_policy_document" "assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -124,7 +110,6 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-# Used by the ECS agent: pulls the image, writes logs, resolves secrets.
 resource "aws_iam_role" "task_execution" {
   name               = "${local.name}-task-execution"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
@@ -137,8 +122,6 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# The managed policy above does not cover Secrets Manager, so grant read access
-# to exactly the secrets this task is asked to inject and nothing wider.
 data "aws_iam_policy_document" "read_secrets" {
   count = length(var.container_secrets) > 0 ? 1 : 0
 
@@ -156,18 +139,12 @@ resource "aws_iam_role_policy" "read_secrets" {
   policy = data.aws_iam_policy_document.read_secrets[0].json
 }
 
-# Used by the application itself. Empty today, but the app should not borrow the
-# execution role the moment it starts calling AWS APIs.
 resource "aws_iam_role" "task" {
   name               = "${local.name}-task"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 
   tags = var.tags
 }
-
-########################################
-# Cluster, task definition, service
-########################################
 
 resource "aws_cloudwatch_log_group" "this" {
   name              = "/ecs/${local.name}"
@@ -255,8 +232,6 @@ resource "aws_ecs_service" "this" {
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
 
-  # Rolling deploy: old tasks stay up until the new ones pass the target group
-  # health check.
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
   health_check_grace_period_seconds  = 60
@@ -273,7 +248,7 @@ resource "aws_ecs_service" "this" {
     container_port   = var.container_port
   }
 
-  # Targets cannot be registered before the listener exists.
+  # targets cannot register before the listener exists
   depends_on = [aws_lb_listener.http]
 
   tags = var.tags

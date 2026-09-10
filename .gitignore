@@ -6,8 +6,6 @@
 tfplan
 crash.log
 crash.*.log
-# tfvars are committed here on purpose - they hold sizing, not secrets - but
-# never commit an override file with credentials in it.
 *.auto.tfvars
 override.tf
 override.tf.json

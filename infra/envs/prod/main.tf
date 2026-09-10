@@ -17,8 +17,6 @@ module "network" {
   vpc_cidr    = var.vpc_cidr
   azs         = var.azs
 
-  # One NAT per AZ. A single NAT would mean losing outbound traffic for every
-  # task in the VPC when one AZ has a bad day.
   single_nat_gateway = false
 
   tags = local.tags
@@ -82,8 +80,6 @@ module "rds" {
   deletion_protection     = true
   skip_final_snapshot     = false
 
-  # Schema and parameter changes wait for the maintenance window rather than
-  # restarting the database in the middle of the day.
   apply_immediately = false
 
   performance_insights_enabled = true

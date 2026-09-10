@@ -17,8 +17,6 @@ module "network" {
   vpc_cidr    = var.vpc_cidr
   azs         = var.azs
 
-  # Dev can live with one NAT gateway. It saves roughly 32 USD a month per AZ,
-  # and an hour of lost egress in dev is not an incident.
   single_nat_gateway = true
 
   tags = local.tags
@@ -52,8 +50,6 @@ module "ecs" {
     DB_NAME = module.rds.db_name
   }
 
-  # The RDS-managed secret holds a JSON document; ECS can pull a single key out
-  # of it with the :key:: suffix, so the plaintext password never leaves AWS.
   container_secrets = {
     DB_USER     = "${module.rds.master_user_secret_arn}:username::"
     DB_PASSWORD = "${module.rds.master_user_secret_arn}:password::"
@@ -71,7 +67,6 @@ module "rds" {
   vpc_id             = module.network.vpc_id
   private_subnet_ids = module.network.private_subnet_ids
 
-  # Only the Fargate tasks may open a connection.
   allowed_security_group_ids = [module.ecs.tasks_security_group_id]
 
   engine_version        = var.db_engine_version

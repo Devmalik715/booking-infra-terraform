@@ -1,15 +1,3 @@
--- 001_schema.sql
--- Base tables for the booking service.
---
--- Two deliberate changes from the schema sketched in the assignment:
---
---   1. created_at is timestamptz, not timestamp. The service takes bookings
---      from several timezones and the reporting query below is anchored to
---      NOW(); a naked timestamp column silently drifts the moment the app
---      server and the database disagree about local time.
---   2. booking_events.booking_id carries a real foreign key. Events without a
---      parent booking are garbage that nobody notices until a report is wrong.
-
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS hotel_bookings (
@@ -41,8 +29,5 @@ CREATE TABLE IF NOT EXISTS booking_events (
     CONSTRAINT booking_events_booking_fk
         FOREIGN KEY (booking_id) REFERENCES hotel_bookings (id) ON DELETE CASCADE
 );
-
-COMMENT ON TABLE hotel_bookings IS 'One row per hotel booking created through the platform.';
-COMMENT ON TABLE booking_events IS 'Append-only audit trail of what happened to a booking.';
 
 COMMIT;

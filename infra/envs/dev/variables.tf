@@ -1,5 +1,5 @@
 variable "project" {
-  description = "Project name, used as a prefix on every resource name."
+  description = "Prefix for resource names."
   type        = string
   default     = "tripare-booking"
 }
@@ -23,17 +23,13 @@ variable "azs" {
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for the dev VPC. Kept distinct from prod so the two can be peered later."
+  description = "CIDR block for the dev VPC."
   type        = string
   default     = "10.20.0.0/16"
 }
 
-########################################
-# Application sizing
-########################################
-
 variable "container_image" {
-  description = "Image the service runs. Placeholder until the real backend image is published."
+  description = "Container image the service runs."
   type        = string
   default     = "public.ecr.aws/nginx/nginx:1.27-alpine"
 }
@@ -57,7 +53,7 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  description = "Number of tasks to keep running."
+  description = "Number of tasks to run."
   type        = number
   default     = 1
 }
@@ -67,10 +63,6 @@ variable "log_retention_days" {
   type        = number
   default     = 7
 }
-
-########################################
-# Database sizing
-########################################
 
 variable "db_engine_version" {
   description = "PostgreSQL engine version."
@@ -97,7 +89,7 @@ variable "db_max_allocated_storage" {
 }
 
 variable "db_name" {
-  description = "Name of the initial database."
+  description = "Initial database name."
   type        = string
   default     = "bookings"
 }

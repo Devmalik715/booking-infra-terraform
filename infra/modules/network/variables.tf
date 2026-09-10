@@ -1,5 +1,5 @@
 variable "project" {
-  description = "Project name, used as a prefix on every resource name."
+  description = "Prefix for resource names."
   type        = string
 }
 
@@ -9,33 +9,33 @@ variable "environment" {
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for the VPC. Subnets are carved out of this automatically."
+  description = "CIDR block for the VPC."
   type        = string
 
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
-    error_message = "vpc_cidr must be a valid IPv4 CIDR block, e.g. 10.20.0.0/16."
+    error_message = "Must be a valid IPv4 CIDR block."
   }
 }
 
 variable "azs" {
-  description = "Availability zones to spread subnets across. One public and one private subnet is created per AZ."
+  description = "Availability zones. One public and one private subnet per AZ."
   type        = list(string)
 
   validation {
     condition     = length(var.azs) >= 2
-    error_message = "At least two AZs are required - both the ALB and the RDS subnet group need them."
+    error_message = "At least two AZs are required."
   }
 }
 
 variable "single_nat_gateway" {
-  description = "Use one shared NAT gateway instead of one per AZ. Cheaper, but the NAT becomes a single point of failure - fine for dev, not for prod."
+  description = "Share one NAT gateway across all AZs instead of one per AZ."
   type        = bool
   default     = false
 }
 
 variable "tags" {
-  description = "Tags applied to every resource in this module."
+  description = "Tags applied to every resource."
   type        = map(string)
   default     = {}
 }

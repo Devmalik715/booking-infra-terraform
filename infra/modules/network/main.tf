@@ -1,10 +1,6 @@
 locals {
   name = "${var.project}-${var.environment}"
 
-  # Subnets are derived from the VPC CIDR so a caller only has to pass one /16.
-  # With a /16 in, cidrsubnet(.., 8, n) hands out /24s.
-  #   public  -> 10.x.0.0/24,   10.x.1.0/24,   ...
-  #   private -> 10.x.100.0/24, 10.x.101.0/24, ...
   public_subnet_cidrs  = [for i, az in var.azs : cidrsubnet(var.vpc_cidr, 8, i)]
   private_subnet_cidrs = [for i, az in var.azs : cidrsubnet(var.vpc_cidr, 8, i + 100)]
 
@@ -52,8 +48,6 @@ resource "aws_subnet" "private" {
   })
 }
 
-# NAT lives in the public subnets and gives the private subnets (Fargate tasks)
-# outbound internet for image pulls and API calls, without making them reachable.
 resource "aws_eip" "nat" {
   count = local.nat_gateway_count
 
@@ -92,7 +86,6 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# One route table per private subnet so each AZ can point at its own NAT.
 resource "aws_route_table" "private" {
   count = length(var.azs)
 
