@@ -37,7 +37,14 @@ docker compose up -d
 ```
 
 `docker compose up -d` creates the schema, indexes and 50,000 seeded bookings
-before it reports healthy. `backup.sh` writes a timestamped dump into
+before it reports healthy. If port 5432 is already taken on your machine - a
+local Postgres, another container - start it on a different host port instead;
+nothing else changes, because both scripts talk to the database inside the
+container:
+
+```bash
+HOST_PORT=5433 docker compose up -d
+``` `backup.sh` writes a timestamped dump into
 `./backups/` and verifies it can be read back. `restore.sh` loads that dump into
 a brand new database and prints a row-by-row comparison against the source,
 exiting non-zero if anything differs.
