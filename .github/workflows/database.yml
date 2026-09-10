@@ -1,0 +1,59 @@
+name: database
+
+on:
+  pull_request:
+    paths:
+      - "db/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - ".github/workflows/database.yml"
+  push:
+    branches: [main]
+    paths:
+      - "db/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+
+jobs:
+  backup-restore:
+    name: seed, back up, restore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint the shell scripts
+        run: shellcheck scripts/*.sh
+
+      - name: Start Postgres
+        run: docker compose up -d --wait
+
+      - name: Check the seed data landed
+        run: |
+          docker compose exec -T postgres psql -U bookings_app -d bookings -v ON_ERROR_STOP=1 -c "
+            SELECT count(*) AS bookings FROM hotel_bookings;
+            SELECT count(*) AS events   FROM booking_events;
+          "
+          count=$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc "SELECT count(*) FROM hotel_bookings")
+          test "$count" -ge 100 || { echo "expected at least 100 bookings, found $count"; exit 1; }
+
+      - name: The reporting query must use the index
+        run: |
+          plan=$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc "
+            EXPLAIN (FORMAT TEXT)
+            SELECT org_id, status, COUNT(*), SUM(amount)
+            FROM hotel_bookings
+            WHERE city = 'delhi' AND created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY org_id, status;")
+          echo "$plan"
+          echo "$plan" | grep -q "idx_hotel_bookings_city_created_at" \
+            || { echo "the planner stopped using the covering index - check db/migrations/002_indexes.sql"; exit 1; }
+
+      - name: Back up
+        run: ./scripts/backup.sh
+
+      - name: Restore into a fresh database and verify
+        run: ./scripts/restore.sh
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
