@@ -42,7 +42,16 @@ else
     exit 1
 fi
 
-if ! ${COMPOSE} exec -T "${SERVICE}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
+ready=0
+for i in {1..15}; do
+    if ${COMPOSE} exec -T "${SERVICE}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
+        ready=1
+        break
+    fi
+    sleep 1
+done
+
+if [[ "${ready}" -eq 0 ]]; then
     echo "ERROR: cannot reach the '${SERVICE}' service. Start it with: docker compose up -d" >&2
     echo "       (if it was only just started, give the seed a few seconds to finish)" >&2
     exit 1
