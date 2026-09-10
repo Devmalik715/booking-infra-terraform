@@ -3,7 +3,7 @@
 # Restores a dump into a fresh database and compares it against the source.
 #
 #   ./scripts/restore.sh                      newest dump -> bookings_restore_<stamp>
-#   ./scripts/restore.sh path/to.dump         restore a specific dump
+#   ./scripts/restore.sh path/to.dump          restore a specific dump
 #   ./scripts/restore.sh -d name              choose the target database
 #   ./scripts/restore.sh -d bookings --force  overwrite an existing one (asks first)
 
@@ -45,6 +45,7 @@ else
 fi
 
 ready=0
+# shellcheck disable=SC2034
 for i in {1..15}; do
     if ${COMPOSE} exec -T "${SERVICE}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
         ready=1
