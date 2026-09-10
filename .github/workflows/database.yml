@@ -26,7 +26,19 @@ jobs:
         run: shellcheck scripts/*.sh
 
       - name: Start Postgres
-        run: docker compose up -d --wait
+        run: |
+          docker compose up -d
+          echo "Waiting for Postgres to complete init scripts, restart, and load seed data..."
+          for i in {1..30}; do
+            count=$(docker compose exec -T postgres psql -U bookings_app -d bookings -tAc "SELECT count(*) FROM hotel_bookings;" 2>/dev/null || echo "0")
+            count=$(echo "$count" | tr -d '[:space:]')
+            if [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -ge 100 ]; then
+              echo "Database is fully initialized with $count seed rows."
+              break
+            fi
+            echo "Waiting for seed rows... (attempt $i, current: $count)"
+            sleep 2
+          done
 
       - name: Check the seed data landed
         run: |
