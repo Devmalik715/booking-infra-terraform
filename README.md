@@ -9,6 +9,39 @@ real, but it is reviewed with `fmt`, `init`, `validate` and `plan`. The database
 half genuinely runs: `docker compose up` gives you a seeded database in about
 thirty seconds.
 
+## Running the review
+
+The Terraform lives one level down, per environment - there is no configuration
+at the repo root, so run it from inside an environment directory:
+
+```bash
+cd infra/envs/dev          # then repeat in infra/envs/prod
+terraform fmt
+terraform init
+terraform validate
+terraform plan -refresh=false
+```
+
+`fmt` prints nothing when everything is already formatted. `validate` reports
+the configuration is valid. `plan` reports **41 resources for dev, 45 for prod**,
+and needs no AWS account - the provider runs in plan-only mode, explained under
+[State](#state). `-var-file` is optional: each environment's variables carry the
+same defaults as its tfvars.
+
+The database half runs from the repo root:
+
+```bash
+docker compose up -d
+./scripts/backup.sh
+./scripts/restore.sh
+```
+
+`docker compose up -d` creates the schema, indexes and 50,000 seeded bookings
+before it reports healthy. `backup.sh` writes a timestamped dump into
+`./backups/` and verifies it can be read back. `restore.sh` loads that dump into
+a brand new database and prints a row-by-row comparison against the source,
+exiting non-zero if anything differs.
+
 ## Contents
 
 ```
