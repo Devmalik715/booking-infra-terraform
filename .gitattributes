@@ -1,0 +1,5 @@
+# Written on Windows, run on Linux: keep everything LF in the repo so the shell
+# scripts do not arrive with carriage returns and fail with a bad interpreter.
+* text=auto eol=lf
+*.png binary
+*.dump binary
