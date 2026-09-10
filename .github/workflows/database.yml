@@ -26,7 +26,13 @@ jobs:
         run: shellcheck scripts/*.sh
 
       - name: Start Postgres
-        run: docker compose up -d --wait
+        run: |
+          docker compose up -d
+          echo "Waiting for Postgres to finish initialization and restart..."
+          until docker compose exec -T postgres psql -U bookings_app -d bookings -c "SELECT 1;" > /dev/null 2>&1; do
+            sleep 2
+          done
+          echo "Postgres is fully ready and accepting connections."
 
       - name: Check the seed data landed
         run: |
