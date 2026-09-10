@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bookings-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bookings}
+      POSTGRES_USER: ${POSTGRES_USER:-bookings_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
+      # Keeps the container clock in UTC, same as RDS.
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # Override HOST_PORT in .env if 5432 is already taken on your machine.
+      - "${HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Files in this directory run once, in filename order, the first time the
+      # data volume is created. Schema, then indexes, then seed data.
+      - ./db/migrations/001_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./db/migrations/002_indexes.sql:/docker-entrypoint-initdb.d/02_indexes.sql:ro
+      - ./db/seed/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro
+      # Handy when running psql inside the container.
+      - ./db:/work/db:ro
+    healthcheck:
+      # The seed step runs before Postgres accepts external connections, so a
+      # healthy container really does mean "schema and data are in place".
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bookings_app} -d ${POSTGRES_DB:-bookings}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  pgdata:
