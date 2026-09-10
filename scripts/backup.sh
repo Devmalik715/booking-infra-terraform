@@ -43,6 +43,7 @@ else
 fi
 
 ready=0
+# shellcheck disable=SC2034
 for i in {1..15}; do
     if ${COMPOSE} exec -T "${SERVICE}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
         ready=1
